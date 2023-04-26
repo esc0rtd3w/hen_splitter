@@ -13,13 +13,42 @@
 #include <unistd.h>
 #endif
 
+#include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <limits.h>
+#include <libgen.h>
+#endif
+
+std::string get_executable_directory() {
+    std::string path;
+    std::vector<char> buffer;
+#ifdef _WIN32
+    buffer.resize(MAX_PATH);
+    GetModuleFileName(NULL, buffer.data(), buffer.size());
+    path = std::string(buffer.data());
+    path = path.substr(0, path.find_last_of("\\/") + 1);
+#else
+    buffer.resize(PATH_MAX);
+    ssize_t len = readlink("/proc/self/exe", buffer.data(), buffer.size() - 1);
+    if (len != -1) {
+        buffer[len] = '\0';
+        path = std::string(dirname(buffer.data()));
+        path += "/";
+    }
+#endif
+    return path;
+}
+
 struct Section {
     const char* name;
     uint32_t start;
     uint32_t end;
 };
 
-void unpack_sections(const char* input_filename) {
+void unpack_sections(const char* input_filename, const std::string& executable_directory) {
+
     std::string input_path(input_filename);
     std::size_t found = input_path.find_last_of("/\\");
     std::string base_path = input_path.substr(0, found + 1);
@@ -71,16 +100,16 @@ void unpack_sections(const char* input_filename) {
 	std::string output_folder;
 	std::regex fw_regex("^\\d{3}[cCdD]$");
 
+	output_folder = executable_directory.empty() ? "./" : executable_directory;
 	if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
-        output_folder = base_path + firmware_version + "/";
-    #ifdef _WIN32
-        _mkdir(output_folder.c_str());
-    #else
-        mkdir(output_folder.c_str(), 0755);
-    #endif
-    } else {
-        output_folder = base_path;
-    }
+		output_folder += firmware_version + "/";
+	#ifdef _WIN32
+		_mkdir(output_folder.c_str());
+	#else
+		mkdir(output_folder.c_str(), 0755);
+	#endif
+	}
+
 
     for (const auto& section : sections) {
         char filename[256];
@@ -175,6 +204,7 @@ void print_help(const char* exe_name) {
 }
 
 int main(int argc, char* argv[]) {
+	std::string executable_directory = get_executable_directory();
     if (argc < 2) {
         print_help(argv[0]);
 
@@ -212,7 +242,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (strcmp(command, "/unpack") == 0) {
-        unpack_sections(filename);
+        unpack_sections(filename, executable_directory);
     } else if (strcmp(command, "/pack") == 0) {
         pack_sections(filename, sections, sizeof(sections) / sizeof(sections[0]));
     } else {
