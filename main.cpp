@@ -62,7 +62,18 @@ void unpack_sections(const char* input_filename) {
     delete[] buffer;
 }
 
+bool file_exists(const char* filename) {
+    struct stat st;
+    return (stat(filename, &st) == 0);
+}
+
 void pack_sections(const char* output_filename, Section* sections, int section_count) {
+	
+    if (file_exists(output_filename)) {
+        fprintf(stderr, "Error: Output file %s already exists. Please choose another filename.\n", output_filename);
+        return;
+    }
+
     FILE* output = fopen(output_filename, "wb");
     if (!output) {
         fprintf(stderr, "Error opening output file.\n");
@@ -72,6 +83,8 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
     unsigned char* buffer = new unsigned char[0x110000];
     memset(buffer, 0, 0x110000);
 
+    bool error_found = false;
+
     for (int i = 0; i < section_count; i++) {
         const auto& section = sections[i];
         char filename[256];
@@ -79,24 +92,34 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
 
         struct stat st;
         if (stat(filename, &st) != 0) {
-            fprintf(stderr, "Error getting file size: %s\n", filename);
-            return;
+            fprintf(stderr, "Error: Section file %s is missing.\n", filename);
+            error_found = true;
+            continue;
         }
 
         uint32_t expected_size = section.end - section.start + 1;
         if (st.st_size != expected_size) {
-            fprintf(stderr, "Error: Section file %s has a size of %ld, expected %u.\n", filename, st.st_size, expected_size);
-            return;
+            fprintf(stderr, "Error: Section file %s has a size of 0x%lX, expected 0x%X.\n", filename, st.st_size, expected_size);
+            error_found = true;
+            continue;
         }
 
         FILE* input = fopen(filename, "rb");
         if (!input) {
             fprintf(stderr, "Error opening input file: %s\n", filename);
-            return;
+            error_found = true;
+            continue;
         }
 
         fread(buffer + section.start, 1, section.end - section.start + 1, input);
         fclose(input);
+    }
+
+    if (error_found) {
+        fprintf(stderr, "Errors found. Exiting without creating a new PS3HEN.BIN file.\n");
+        delete[] buffer;
+        fclose(output);
+        return;
     }
 
     fwrite(buffer, 1, 0x110000, output);
@@ -105,12 +128,11 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
     delete[] buffer;
 }
 
-
 void print_help(const char* exe_name) {
     printf("Usage: %s /unpack|/pack PS3HEN.BIN\n", exe_name);
     printf("Commands:\n");
     printf("  /unpack PS3HEN.BIN      Unpack the PS3HEN.BIN file into separate sections\n");
-    printf("  /pack PS3HEN_NEW.BIN     Pack the separate section files back into a PS3HEN.BIN file\n");
+    printf("  /pack PS3HEN_NEW.BIN     Pack the separate section files back into a new file\n");
 }
 
 int main(int argc, char* argv[]) {
