@@ -55,23 +55,23 @@ void unpack_sections(const char* input_filename) {
     fclose(input);
 
     // Ask for firmware version
-    std::string firmware_version;
-    std::cout << "Enter firmware version (e.g. 490) or leave blank for current directory: ";
-    std::getline(std::cin, firmware_version);
+	std::string firmware_version;
+	std::cout << "Enter firmware version (e.g. 490C) or leave blank for current directory: ";
+	std::getline(std::cin, firmware_version);
 
-    std::string output_folder;
-    std::regex fw_regex("^\\d{3}$");
+	std::string output_folder;
+	std::regex fw_regex("^\\d{3}[cCdD]$");
 
-    if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
-        output_folder = firmware_version + "/";
+	if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
+		output_folder = firmware_version + "/";
 	#ifdef _WIN32
-        _mkdir(output_folder.c_str());
+		_mkdir(output_folder.c_str());
 	#else
-        mkdir(output_folder.c_str(), 0755);
+		mkdir(output_folder.c_str(), 0755);
 	#endif
-    } else {
-        output_folder = "./";
-    }
+	} else {
+		output_folder = "./";
+	}
 
     for (const auto& section : sections) {
         char filename[256];
