@@ -137,7 +137,7 @@ void print_help(const char* exe_name) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
+    if (argc < 2) {
         print_help(argv[0]);
 
         // Pause and wait for the user to press Enter
@@ -161,8 +161,17 @@ int main(int argc, char* argv[]) {
         {"padding3", 0x0010F000, 0x0010FFFF}
     };
 
-    const char* command = argv[1];
-    const char* filename = argv[2];
+    const char* command;
+    const char* filename;
+
+    if (argc == 2) {
+        // Treat a dropped file as an automatic "/unpack" command
+        command = "/unpack";
+        filename = argv[1];
+    } else {
+        command = argv[1];
+        filename = argv[2];
+    }
 
     if (strcmp(command, "/unpack") == 0) {
         unpack_sections(filename);
@@ -175,3 +184,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
