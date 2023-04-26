@@ -3,6 +3,15 @@
 #include <string>
 #include <cstring>
 #include <sys/stat.h>
+#include <iostream>
+#include <regex>
+
+// Include platform-specific headers
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
 
 struct Section {
     const char* name;
@@ -40,13 +49,33 @@ void unpack_sections(const char* input_filename) {
         {"padding3", 0x0010F000, 0x0010FFFF}
     };
 
+
     unsigned char* buffer = new unsigned char[size];
     fread(buffer, 1, size, input);
     fclose(input);
 
+    // Ask for firmware version
+    std::string firmware_version;
+    std::cout << "Enter firmware version (e.g. 490) or leave blank for current directory: ";
+    std::getline(std::cin, firmware_version);
+
+    std::string output_folder;
+    std::regex fw_regex("^\\d{3}$");
+
+    if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
+        output_folder = firmware_version + "/";
+#ifdef _WIN32
+        _mkdir(output_folder.c_str());
+#else
+        mkdir(output_folder.c_str(), 0755);
+#endif
+    } else {
+        output_folder = "./";
+    }
+
     for (const auto& section : sections) {
         char filename[256];
-        sprintf(filename, "%02d_0x%08X-0x%08X_%s.bin", &section - sections + 1, section.start, section.end, section.name);
+        sprintf(filename, "%s%02d_0x%08X-0x%08X_%s.bin", output_folder.c_str(), &section - sections + 1, section.start, section.end, section.name);
         FILE* output = fopen(filename, "wb");
         if (!output) {
             fprintf(stderr, "Error opening output file: %s\n", filename);
@@ -61,7 +90,6 @@ void unpack_sections(const char* input_filename) {
 
     delete[] buffer;
 }
-
 
 bool file_exists(const char* filename) {
     struct stat st;
