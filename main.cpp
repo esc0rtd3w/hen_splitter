@@ -46,7 +46,7 @@ struct Section {
     uint32_t end;
 };
 
-void unpack_sections(const char* input_filename, const std::string& executable_directory) {
+void unpack_sections(const char* input_filename, const std::string& executable_directory, const std::string& output_folder_param) {
 
     std::string input_path(input_filename);
     std::size_t found = input_path.find_last_of("/\\");
@@ -92,37 +92,44 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
     fclose(input);
 
     // Ask for firmware version
-	std::string firmware_version;
-	std::cout << "Enter firmware version (e.g. 490C) or leave blank for current directory: ";
-	std::getline(std::cin, firmware_version);
-
 	std::string output_folder;
-	std::regex fw_regex("^\\d{3}[cCdD]$");
+    std::regex fw_regex("^\\d{3}[cCdD]$");
 
-	output_folder = executable_directory.empty() ? "./" : executable_directory;
-	if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
-		output_folder += firmware_version + "/";
-	#ifdef _WIN32
-		_mkdir(output_folder.c_str());
-	#else
-		mkdir(output_folder.c_str(), 0755);
-	#endif
-	}
+    if (output_folder_param.empty()) {
+        std::string firmware_version;
+        std::cout << "Enter firmware version (e.g. 490C) or leave blank for current directory: ";
+        std::getline(std::cin, firmware_version);
+        if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
+            output_folder = executable_directory.empty() ? "./" : executable_directory;
+            output_folder += firmware_version + "/";
+        } else {
+            output_folder = executable_directory.empty() ? "./" : executable_directory;
+        }
+    } else {
+        output_folder = executable_directory.empty() ? "./" : executable_directory;
+        output_folder += output_folder_param + "/";
+    }
 
+    #ifdef _WIN32
+        _mkdir(output_folder.c_str());
+    #else
+        mkdir(output_folder.c_str(), 0755);
+    #endif
 
     for (const auto& section : sections) {
         char filename[256];
-        sprintf(filename, "%s%02d_0x%08X-0x%08X_%s.bin", output_folder.c_str(), (int)(&section - sections) + 1, section.start, section.end, section.name);
-        FILE* output = fopen(filename, "wb");
+        sprintf(filename, "%02d_0x%08X-0x%08X_%s.bin", (int)(&section - sections) + 1, section.start, section.end, section.name);
+        std::string filepath = output_folder + filename;
+        FILE* output = fopen(filepath.c_str(), "wb");
         if (!output) {
-            fprintf(stderr, "Error opening output file: %s\n", filename);
+            fprintf(stderr, "Error opening output file: %s\n", filepath.c_str());
             return;
         }
 
         fwrite(buffer + section.start, 1, section.end - section.start + 1, output);
         fclose(output);
 
-        printf("Created file: %s\n", filename);
+        printf("Created file: %s\n", filepath.c_str());
     }
 
     delete[] buffer;
@@ -254,11 +261,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (strcmp(command, "/unpack") == 0) {
-        if (output_folder.empty()) {
-            unpack_sections(filename, executable_directory);
-        } else {
-            unpack_sections(filename, output_folder);
-        }
+        unpack_sections(filename, executable_directory, output_folder);
     } else if (strcmp(command, "/pack") == 0) {
         pack_sections(filename, sections, sizeof(sections) / sizeof(sections[0]));
     } else {
