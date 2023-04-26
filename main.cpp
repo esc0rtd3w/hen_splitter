@@ -64,18 +64,18 @@ void unpack_sections(const char* input_filename) {
 
     if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
         output_folder = firmware_version + "/";
-#ifdef _WIN32
+	#ifdef _WIN32
         _mkdir(output_folder.c_str());
-#else
+	#else
         mkdir(output_folder.c_str(), 0755);
-#endif
+	#endif
     } else {
         output_folder = "./";
     }
 
     for (const auto& section : sections) {
         char filename[256];
-        sprintf(filename, "%s%02d_0x%08X-0x%08X_%s.bin", output_folder.c_str(), &section - sections + 1, section.start, section.end, section.name);
+        sprintf(filename, "%s%02d_0x%08X-0x%08X_%s.bin", output_folder.c_str(), (int)(&section - sections) + 1, section.start, section.end, section.name);
         FILE* output = fopen(filename, "wb");
         if (!output) {
             fprintf(stderr, "Error opening output file: %s\n", filename);
