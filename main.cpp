@@ -5,6 +5,9 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <regex>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -52,25 +55,25 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
     std::size_t found = input_path.find_last_of("/\\");
     std::string base_path = input_path.substr(0, found + 1);
 
-    FILE* input = fopen(input_filename, "rb");
+    std::ifstream input(input_filename, std::ios::binary);
     if (!input) {
-        fprintf(stderr, "Error opening input file.\n");
-        printf("\nPress Enter to exit...\n");
-        getchar();
+        std::cerr << "Error opening input file." << std::endl;
+        std::cout << "\nPress Enter to exit..." << std::endl;
+        std::cin.get();
         return;
     }
 
     // Check the length of the input file.
-    fseek(input, 0, SEEK_END);
-    long size = ftell(input);
+    input.seekg(0, std::ios::end);
+    std::streamoff size = input.tellg();
     if (size != 0x110000) {
-        fprintf(stderr, "Error: Input file length is %ld, expected 0x110000.\n", size);
-        fclose(input);
-        printf("\nPress Enter to exit...\n");
-        getchar();
+        std::cerr << "Error: Input file length is " << size << ", expected 0x110000." << std::endl;
+        input.close();
+        std::cout << "\nPress Enter to exit..." << std::endl;
+        std::cin.get();
         return;
     }
-    fseek(input, 0, SEEK_SET);
+    input.seekg(0, std::ios::beg);
 
     Section sections[] = {
         {"webkit_vsh_gadgets_1", 0x00000000, 0x0006FFFF},
@@ -87,9 +90,10 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
     };
 
 
-    unsigned char* buffer = new unsigned char[size];
-    fread(buffer, 1, size, input);
-    fclose(input);
+    unsigned char* buffer = new unsigned char[static_cast<unsigned int>(size)];
+    input.read(reinterpret_cast<char*>(buffer), size);
+    input.close();
+
 
     // Ask for firmware version
 	std::string output_folder;
@@ -117,22 +121,28 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
     #endif
 
     for (const auto& section : sections) {
-        char filename[256];
-        sprintf(filename, "%02d_0x%08X-0x%08X_%s.bin", (int)(&section - sections) + 1, section.start, section.end, section.name);
+        std::ostringstream filename_stream;
+        filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::hex << section.start << "-0x" << section.end << "_" << section.name << ".bin";
+        std::string filename = filename_stream.str();
         std::string filepath = output_folder + filename;
-        FILE* output = fopen(filepath.c_str(), "wb");
+
+        std::ofstream output(filepath, std::ios::binary);
         if (!output) {
-            fprintf(stderr, "Error opening output file: %s\n", filepath.c_str());
+            std::cerr << "Error opening output file: " << filepath << std::endl;
             return;
         }
 
-        fwrite(buffer + section.start, 1, section.end - section.start + 1, output);
-        fclose(output);
+        output.write(reinterpret_cast<char*>(buffer + section.start), section.end - section.start + 1);
+        output.close();
 
-        printf("Created file: %s\n", filepath.c_str());
+        std::cout << "Created file: " << filepath << std::endl;
     }
 
     delete[] buffer;
+
+    // Pause after unpack_sections is done
+    std::cout << "Unpack operation completed. Press Enter to continue..." << std::endl;
+    std::cin.get();
 }
 
 bool file_exists(const char* filename) {
@@ -142,65 +152,64 @@ bool file_exists(const char* filename) {
 
 void pack_sections(const char* output_filename, Section* sections, int section_count) {
     if (file_exists(output_filename)) {
-        fprintf(stderr, "Error: Output file %s already exists. Please choose another filename.\n", output_filename);
-        printf("\nPress Enter to exit...\n");
-        getchar();
+        std::cerr << "Error: Output file " << output_filename << " already exists. Please choose another filename." << std::endl;
+        std::cout << "\nPress Enter to exit..." << std::endl;
+        std::cin.get();
         return;
     }
 
-    FILE* output = fopen(output_filename, "wb");
+    std::ofstream output(output_filename, std::ios::binary);
     if (!output) {
-        fprintf(stderr, "Error opening output file.\n");
+        std::cerr << "Error opening output file." << std::endl;
         return;
     }
 
-    unsigned char* buffer = new unsigned char[0x110000];
-    memset(buffer, 0, 0x110000);
+    std::vector<unsigned char> buffer(0x110000);
+    std::fill(buffer.begin(), buffer.end(), 0);
 
     bool error_found = false;
 
     for (int i = 0; i < section_count; i++) {
         const auto& section = sections[i];
-        char filename[256];
-        sprintf(filename, "0x%08X-0x%08X_%s.bin", section.start, section.end, section.name);
+        std::ostringstream filename_stream;
+        filename_stream << "0x" << std::hex << section.start << "-0x" << section.end << "_" << section.name << ".bin";
+        std::string filename = filename_stream.str();
 
         struct stat st;
-        if (stat(filename, &st) != 0) {
-            fprintf(stderr, "Error: Section file %s is missing.\n", filename);
+        if (stat(filename.c_str(), &st) != 0) {
+            std::cerr << "Error: Section file " << filename << " is missing." << std::endl;
             error_found = true;
             continue;
         }
 
         uint32_t expected_size = section.end - section.start + 1;
-        if (st.st_size != expected_size) {
-            fprintf(stderr, "Error: Section file %s has a size of 0x%lX, expected 0x%X.\n", filename, st.st_size, expected_size);
+        if (st.st_size != static_cast<int64_t>(expected_size)) { // Cast to int64_t
+            std::cerr << "Error: Section file " << filename << " has a size of 0x" << std::hex << st.st_size << ", expected 0x" << expected_size << "." << std::endl;
             error_found = true;
             continue;
         }
 
-        FILE* input = fopen(filename, "rb");
+        std::ifstream input(filename, std::ios::binary);
         if (!input) {
-            fprintf(stderr, "Error opening input file: %s\n", filename);
+            std::cerr << "Error opening input file: " << filename << std::endl;
             error_found = true;
             continue;
         }
 
-        fread(buffer + section.start, 1, section.end - section.start + 1, input);
-        fclose(input);
+        input.read(reinterpret_cast<char*>(buffer.data() + section.start), section.end - section.start + 1);
+        input.close();
     }
 
     if (error_found) {
-        fprintf(stderr, "Errors found. Exiting without creating a new PS3HEN.BIN file.\n");
-        delete[] buffer;
-        fclose(output);
+        std::cerr << "Errors found. Exiting without creating a new PS3HEN.BIN file." << std::endl;
+        output.close();
         return;
     }
 
-    fwrite(buffer, 1, 0x110000, output);
-    fclose(output);
-
-    delete[] buffer;
+    output.write(reinterpret_cast<char*>(buffer.data()), 0x110000);
+    output.close();
 }
+
 
 void print_help(const char* exe_name) {
     printf("Usage: %s /unpack|/pack PS3HEN.BIN\n", exe_name);
