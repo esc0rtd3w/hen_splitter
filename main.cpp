@@ -6,7 +6,6 @@
 #include <iostream>
 #include <regex>
 
-// Include platform-specific headers
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -204,7 +203,8 @@ void print_help(const char* exe_name) {
 }
 
 int main(int argc, char* argv[]) {
-	std::string executable_directory = get_executable_directory();
+    std::string executable_directory = get_executable_directory();
+
     if (argc < 2) {
         print_help(argv[0]);
 
@@ -231,6 +231,7 @@ int main(int argc, char* argv[]) {
 
     const char* command;
     const char* filename;
+    std::string output_folder;
 
     if (argc == 2) {
         // Treat a dropped file as an automatic "/unpack" command
@@ -239,10 +240,25 @@ int main(int argc, char* argv[]) {
     } else {
         command = argv[1];
         filename = argv[2];
+
+        if (argc > 3) {
+            if (strcmp(argv[3], "/out") == 0) {
+                if (argc > 4) {
+                    output_folder = argv[4];
+                } else {
+                    fprintf(stderr, "Missing output path after /out switch.\n");
+                    return 1;
+                }
+            }
+        }
     }
 
     if (strcmp(command, "/unpack") == 0) {
-        unpack_sections(filename, executable_directory);
+        if (output_folder.empty()) {
+            unpack_sections(filename, executable_directory);
+        } else {
+            unpack_sections(filename, output_folder);
+        }
     } else if (strcmp(command, "/pack") == 0) {
         pack_sections(filename, sections, sizeof(sections) / sizeof(sections[0]));
     } else {
