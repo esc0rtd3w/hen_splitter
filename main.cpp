@@ -46,7 +46,7 @@ void unpack_sections(const char* input_filename) {
 
     for (const auto& section : sections) {
         char filename[256];
-        sprintf(filename, "0x%08X-0x%08X_%s.bin", section.start, section.end, section.name);
+        sprintf(filename, "%02d_0x%08X-0x%08X_%s.bin", &section - sections + 1, section.start, section.end, section.name);
         FILE* output = fopen(filename, "wb");
         if (!output) {
             fprintf(stderr, "Error opening output file: %s\n", filename);
@@ -61,6 +61,7 @@ void unpack_sections(const char* input_filename) {
 
     delete[] buffer;
 }
+
 
 bool file_exists(const char* filename) {
     struct stat st;
