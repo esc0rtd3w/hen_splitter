@@ -5,10 +5,10 @@ TARGET = hen_splitter
 all: $(TARGET).exe
 
 $(TARGET).exe: main.obj
-    $(CC) $(CFLAGS) main.obj -o $(TARGET).exe
+    $(CC) $(CFLAGS) main.obj /Fe:$(TARGET).exe
 
 main.obj: main.cpp
-    $(CC) $(CFLAGS) /c main.cpp -o main.obj
+    $(CC) $(CFLAGS) /c main.cpp /Fe:main.obj
 
 clean:
     del *.obj *.exe
