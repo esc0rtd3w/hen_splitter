@@ -20,9 +20,15 @@ struct Section {
 };
 
 void unpack_sections(const char* input_filename) {
+    std::string input_path(input_filename);
+    std::size_t found = input_path.find_last_of("/\\");
+    std::string base_path = input_path.substr(0, found + 1);
+
     FILE* input = fopen(input_filename, "rb");
     if (!input) {
         fprintf(stderr, "Error opening input file.\n");
+        printf("\nPress Enter to exit...\n");
+        getchar();
         return;
     }
 
@@ -31,6 +37,9 @@ void unpack_sections(const char* input_filename) {
     long size = ftell(input);
     if (size != 0x110000) {
         fprintf(stderr, "Error: Input file length is %ld, expected 0x110000.\n", size);
+        fclose(input);
+        printf("\nPress Enter to exit...\n");
+        getchar();
         return;
     }
     fseek(input, 0, SEEK_SET);
@@ -63,15 +72,15 @@ void unpack_sections(const char* input_filename) {
 	std::regex fw_regex("^\\d{3}[cCdD]$");
 
 	if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
-		output_folder = firmware_version + "/";
-	#ifdef _WIN32
-		_mkdir(output_folder.c_str());
-	#else
-		mkdir(output_folder.c_str(), 0755);
-	#endif
-	} else {
-		output_folder = "./";
-	}
+        output_folder = base_path + firmware_version + "/";
+    #ifdef _WIN32
+        _mkdir(output_folder.c_str());
+    #else
+        mkdir(output_folder.c_str(), 0755);
+    #endif
+    } else {
+        output_folder = base_path;
+    }
 
     for (const auto& section : sections) {
         char filename[256];
@@ -97,9 +106,10 @@ bool file_exists(const char* filename) {
 }
 
 void pack_sections(const char* output_filename, Section* sections, int section_count) {
-	
     if (file_exists(output_filename)) {
         fprintf(stderr, "Error: Output file %s already exists. Please choose another filename.\n", output_filename);
+        printf("\nPress Enter to exit...\n");
+        getchar();
         return;
     }
 
@@ -212,4 +222,5 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
 
