@@ -211,11 +211,12 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
     output.close();
 }
 
-void print_help(const char* exe_name) {
+void print_help() {
     printf("Hen Splitter v1.0\n");
     printf("esc0rtd3w / PS3Xploit Team 2023\n");
     printf("http://www.ps3xploit.me\n\n");
-    printf("Usage: %s /unpack|/pack PS3HEN.BIN /out [directory]\n\n", exe_name);
+    printf("Usage: hen_splitter.exe /unpack|/pack PS3HEN.BIN /out [directory]\n");
+    printf("Drag and Drop is Supported\n\n");
     printf("Commands:\n");
     printf("  /unpack               Unpack the PS3HEN.BIN file into separate sections\n");
     printf("  /out                  Specify output directory\n");
@@ -229,7 +230,7 @@ int main(int argc, char* argv[]) {
     std::string executable_directory = get_executable_directory();
 
     if (argc < 2) {
-        print_help(argv[0]);
+        print_help();
 
         // Pause and wait for the user to press Enter
         printf("\nPress Enter to exit...\n");
