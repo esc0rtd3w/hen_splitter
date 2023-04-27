@@ -122,7 +122,9 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
 
     for (const auto& section : sections) {
         std::ostringstream filename_stream;
-        filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::hex << section.start << "-0x" << section.end << "_" << section.name << ".bin";
+		filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::uppercase << std::hex << std::setw(8) << section.start << "-0x" << std::setw(8) << section.end << "_" << section.name << ".bin";
+
+
         std::string filename = filename_stream.str();
         std::string filepath = output_folder + filename;
 
@@ -141,8 +143,8 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
     delete[] buffer;
 
     // Pause after unpack_sections is done
-    std::cout << "Unpack operation completed. Press Enter to continue..." << std::endl;
-    std::cin.get();
+    //std::cout << "\nUnpack operation completed. Press Enter to continue..." << std::endl;
+    //std::cin.get();
 }
 
 bool file_exists(const char* filename) {
