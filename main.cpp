@@ -23,6 +23,8 @@
 #include <libgen.h>
 #endif
 
+// TODO: check some bytes from input file to verify its a PS3HEN.BIN file
+
 std::string get_executable_directory() {
     std::string path;
     std::vector<char> buffer;
@@ -47,6 +49,20 @@ struct Section {
     const char* name;
     uint32_t start;
     uint32_t end;
+};
+
+Section sections[] = {
+    {"webkit_vsh_gadgets_1", 0x00000000, 0x0006FFFF},
+    {"sprx", 0x00070000, 0x0007FFF7},
+    {"size_of_stage2", 0x0007FFF8, 0x0007FFFF},
+    {"stage2", 0x00080000, 0x0009FFF7},
+    {"webkit_vsh_gadgets_2", 0x0009FFF8, 0x000A0387},
+    {"padding1", 0x000A0388, 0x000A4FAF},
+    {"socket_lv2_value", 0x000A4FB0, 0x000A5EEF},
+    {"padding2", 0x000A5EF0, 0x000FFFDF},
+    {"stackframe_lv2_vsh_offsets", 0x000FFFE0, 0x00101FFF},
+    {"stage0", 0x00102000, 0x0010EFFF},
+    {"padding3", 0x0010F000, 0x0010FFFF}
 };
 
 void unpack_sections(const char* input_filename, const std::string& executable_directory, const std::string& output_folder_param) {
@@ -74,21 +90,6 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
         return;
     }
     input.seekg(0, std::ios::beg);
-
-    Section sections[] = {
-        {"webkit_vsh_gadgets_1", 0x00000000, 0x0006FFFF},
-        {"sprx", 0x00070000, 0x0007FFF7},
-        {"size_of_stage2", 0x0007FFF8, 0x0007FFFF},
-        {"stage2", 0x00080000, 0x0009FFF7},
-        {"webkit_vsh_gadgets_2", 0x0009FFF8, 0x000A0387},
-        {"padding1", 0x000A0388, 0x000A4FAF},
-        {"socket_lv2_value", 0x000A4FB0, 0x000A5EEF},
-        {"padding2", 0x000A5EF0, 0x000FFFDF},
-        {"stackframe_lv2_vsh_offsets", 0x000FFFE0, 0x00101FFF},
-        {"stage0", 0x00102000, 0x0010EFFF},
-        {"padding3", 0x0010F000, 0x0010FFFF}
-    };
-
 
     unsigned char* buffer = new unsigned char[static_cast<unsigned int>(size)];
     input.read(reinterpret_cast<char*>(buffer), size);
@@ -238,20 +239,6 @@ int main(int argc, char* argv[]) {
 
         return 1;
     }
-
-    Section sections[] = {
-        {"webkit_vsh_gadgets_1", 0x00000000, 0x0006FFFF},
-        {"sprx", 0x00070000, 0x0007FFF7},
-        {"size_of_stage2", 0x0007FFF8, 0x0007FFFF},
-        {"stage2", 0x00080000, 0x0009FFF7},
-        {"webkit_vsh_gadgets_2", 0x0009FFF8, 0x000A0387},
-        {"padding1", 0x000A0388, 0x000A4FAF},
-        {"socket_lv2_value", 0x000A4FB0, 0x000A5EEF},
-        {"padding2", 0x000A5EF0, 0x000FFFDF},
-        {"stackframe_lv2_vsh_offsets", 0x000FFFE0, 0x00101FFF},
-        {"stage0", 0x00102000, 0x0010EFFF},
-        {"padding3", 0x0010F000, 0x0010FFFF}
-    };
 
     const char* command;
     const char* filename;
