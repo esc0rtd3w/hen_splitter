@@ -121,6 +121,8 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
         mkdir(output_folder.c_str(), 0755);
     #endif
 
+	int section_count = 0; // Add a counter for the number of sections
+
     for (const auto& section : sections) {
         std::ostringstream filename_stream;
 		filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::uppercase << std::hex << std::setw(8) << section.start << "-0x" << std::setw(8) << section.end << "_" << section.name << ".bin";
@@ -137,7 +139,10 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
         output.close();
 
         std::cout << "Created file: " << filepath << std::endl;
+        section_count++; // Increment the counter for each section created
     }
+	
+	std::cout << "Total number of sections unpacked: " << section_count << std::endl; // Print the total number of sections
 
     delete[] buffer;
 
@@ -229,6 +234,7 @@ void print_help() {
 
 int main(int argc, char* argv[]) {
     std::string executable_directory = get_executable_directory();
+    std::string input_directory = "";
 
     if (argc < 2) {
         print_help();
@@ -252,28 +258,51 @@ int main(int argc, char* argv[]) {
         command = argv[1];
         filename = argv[2];
 
-        if (argc > 3) {
-            if (strcmp(argv[3], "/out") == 0) {
-                if (argc > 4) {
-                    output_folder = argv[4];
+        int i = 3;
+        while (i < argc) {
+            if (strcmp(argv[i], "/out") == 0) {
+                if (i + 1 < argc) {
+                    output_folder = argv[i + 1];
+                    i += 2;
                 } else {
                     fprintf(stderr, "Missing output path after /out switch.\n");
                     return 1;
                 }
+            } else if (strcmp(argv[i], "/in") == 0) {
+                if (i + 1 < argc) {
+                    input_directory = argv[i + 1];
+                    i += 2;
+                } else {
+                    fprintf(stderr, "Missing input path after /in switch.\n");
+                    return 1;
+                }
+            } else {
+                i++;
             }
         }
     }
 
-    if (strcmp(command, "/unpack") == 0) {
-        unpack_sections(filename, executable_directory, output_folder);
-    } else if (strcmp(command, "/pack") == 0) {
-        pack_sections(filename, sections, sizeof(sections) / sizeof(sections[0]));
-    } else {
-        fprintf(stderr, "Invalid command: %s\n", command);
-        return 1;
-    }
+	std::string original_executable_directory;
+
+	if (strcmp(command, "/unpack") == 0) {
+		unpack_sections(filename, executable_directory, output_folder);
+	} else if (strcmp(command, "/pack") == 0) {
+		if (!input_directory.empty()) {
+			original_executable_directory = executable_directory;
+			executable_directory += input_directory + "/";
+		}
+		pack_sections(filename, sections, sizeof(sections) / sizeof(sections[0]));
+		if (!input_directory.empty()) {
+			executable_directory = original_executable_directory;
+		}
+	} else {
+		fprintf(stderr, "Invalid command: %s\n", command);
+		return 1;
+	}
+
 
     return 0;
 }
+
 
 
