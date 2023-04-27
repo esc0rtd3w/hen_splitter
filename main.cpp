@@ -212,10 +212,17 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
 }
 
 void print_help(const char* exe_name) {
-    printf("Usage: %s /unpack|/pack PS3HEN.BIN\n", exe_name);
+    printf("Hen Splitter v1.0\n");
+    printf("esc0rtd3w / PS3Xploit Team 2023\n");
+    printf("http://www.ps3xploit.me\n\n");
+    printf("Usage: %s /unpack|/pack PS3HEN.BIN /out [directory]\n\n", exe_name);
     printf("Commands:\n");
-    printf("  /unpack PS3HEN.BIN      Unpack the PS3HEN.BIN file into separate sections\n");
-    printf("  /pack PS3HEN_NEW.BIN     Pack the separate section files back into a new file\n");
+    printf("  /unpack               Unpack the PS3HEN.BIN file into separate sections\n");
+    printf("  /out                  Specify output directory\n");
+    printf("  /pack                 Pack the section files back into a new file\n\n");
+    printf("  Unpack Example 1:     hen_splitter.exe /unpack PS3HEN.BIN\n");
+    printf("  Unpack Example 2:     hen_splitter.exe /unpack PS3HEN.BIN /out \"490C\"\n\n");
+    printf("  Pack Example:         hen_splitter.exe /pack PS3HEN_NEW.BIN\n");
 }
 
 int main(int argc, char* argv[]) {
