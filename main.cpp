@@ -123,8 +123,6 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
     for (const auto& section : sections) {
         std::ostringstream filename_stream;
 		filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::uppercase << std::hex << std::setw(8) << section.start << "-0x" << std::setw(8) << section.end << "_" << section.name << ".bin";
-
-
         std::string filename = filename_stream.str();
         std::string filepath = output_folder + filename;
 
@@ -174,8 +172,8 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
     for (int i = 0; i < section_count; i++) {
         const auto& section = sections[i];
         std::ostringstream filename_stream;
-        filename_stream << "0x" << std::hex << section.start << "-0x" << section.end << "_" << section.name << ".bin";
-        std::string filename = filename_stream.str();
+		filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::uppercase << std::hex << std::setw(8) << section.start << "-0x" << std::setw(8) << section.end << "_" << section.name << ".bin";
+		std::string filename = filename_stream.str();
 
         struct stat st;
         if (stat(filename.c_str(), &st) != 0) {
