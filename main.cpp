@@ -281,7 +281,7 @@ int main(int argc, char* argv[]) {
                 if (i + 1 < argc) {
                     input_directory = argv[i + 1];
                     // Add the following line to append the file separator
-                    input_directory += "\\";
+                    input_directory += PATH_SEPARATOR;
                     i += 2;
                 } else {
                     fprintf(stderr, "Missing input path after /in switch.\n");
