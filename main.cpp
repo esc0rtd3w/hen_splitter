@@ -225,10 +225,10 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
 }
 
 void print_help() {
-    printf("Hen Splitter v1.0\n");
+    printf("HEN Splitter v1.0\n");
     printf("esc0rtd3w / PS3Xploit Team 2023\n");
     printf("http://www.ps3xploit.me\n\n");
-    printf("Usage: hen_splitter.exe /unpack|/pack PS3HEN.BIN /out [directory]\n");
+    printf("Usage: hen_splitter.exe /unpack|/pack PS3HEN.BIN /out|/in [directory]\n\n");
     printf("Drag and Drop is Supported\n\n");
     printf("Commands:\n");
     printf("  /unpack               Unpack the PS3HEN.BIN file into separate sections\n");
