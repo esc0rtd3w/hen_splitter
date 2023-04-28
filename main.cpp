@@ -65,7 +65,7 @@ Section sections[] = {
     {"padding3", 0x0010F000, 0x0010FFFF}
 };
 
-void unpack_sections(const char* input_filename, const std::string& executable_directory, const std::string& output_folder_param) {
+void unpack_sections(const char* input_filename, const std::string& executable_directory, const std::string& output_directory_param) {
 
     std::string input_path(input_filename);
     std::size_t found = input_path.find_last_of("/\\");
@@ -97,28 +97,28 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
 
 
     // Ask for firmware version
-	std::string output_folder;
+	std::string output_directory;
     std::regex fw_regex("^\\d{3}[cCdD]$");
 
-    if (output_folder_param.empty()) {
+    if (output_directory_param.empty()) {
         std::string firmware_version;
         std::cout << "Enter firmware version (e.g. 490C) or leave blank for current directory: ";
         std::getline(std::cin, firmware_version);
         if (!firmware_version.empty() && std::regex_match(firmware_version, fw_regex)) {
-            output_folder = executable_directory.empty() ? "./" : executable_directory;
-            output_folder += firmware_version + "/";
+            output_directory = executable_directory.empty() ? "./" : executable_directory;
+            output_directory += firmware_version + "/";
         } else {
-            output_folder = executable_directory.empty() ? "./" : executable_directory;
+            output_directory = executable_directory.empty() ? "./" : executable_directory;
         }
     } else {
-        output_folder = executable_directory.empty() ? "./" : executable_directory;
-        output_folder += output_folder_param + "/";
+        output_directory = executable_directory.empty() ? "./" : executable_directory;
+        output_directory += output_directory_param + "/";
     }
 
     #ifdef _WIN32
-        _mkdir(output_folder.c_str());
+        _mkdir(output_directory.c_str());
     #else
-        mkdir(output_folder.c_str(), 0755);
+        mkdir(output_directory.c_str(), 0755);
     #endif
 
 	int section_count = 0; // Add a counter for the number of sections
@@ -127,7 +127,7 @@ void unpack_sections(const char* input_filename, const std::string& executable_d
         std::ostringstream filename_stream;
 		filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::uppercase << std::hex << std::setw(8) << section.start << "-0x" << std::setw(8) << section.end << "_" << section.name << ".bin";
         std::string filename = filename_stream.str();
-        std::string filepath = output_folder + filename;
+        std::string filepath = output_directory + filename;
 
         std::ofstream output(filepath, std::ios::binary);
         if (!output) {
@@ -225,16 +225,22 @@ void print_help() {
     printf("Drag and Drop is Supported\n\n");
     printf("Commands:\n");
     printf("  /unpack               Unpack the PS3HEN.BIN file into separate sections\n");
-    printf("  /out                  Specify output directory\n");
-    printf("  /pack                 Pack the section files back into a new file\n\n");
+    printf("  /out                  Specify output directory for PS3HEN.BIN\n\n");
+    printf("  /pack                 Pack the section files back into a new file\n");
+    printf("  /in                   Specify input directory for sections\n\n");
     printf("  Unpack Example 1:     hen_splitter.exe /unpack PS3HEN.BIN\n");
     printf("  Unpack Example 2:     hen_splitter.exe /unpack PS3HEN.BIN /out \"490C\"\n\n");
-    printf("  Pack Example:         hen_splitter.exe /pack PS3HEN_NEW.BIN\n");
+    printf("  Pack Example 1:       hen_splitter.exe /pack PS3HEN_NEW.BIN\n");
+    printf("  Pack Example 2:       hen_splitter.exe /pack PS3HEN_NEW.BIN /in \"490C\"\n\n");
 }
 
 int main(int argc, char* argv[]) {
+
     std::string executable_directory = get_executable_directory();
     std::string input_directory = "";
+    std::string output_directory;
+    const char* command;
+    const char* filename;
 
     if (argc < 2) {
         print_help();
@@ -246,10 +252,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const char* command;
-    const char* filename;
-    std::string output_folder;
-
     if (argc == 2) {
         // Treat a dropped file as an automatic "/unpack" command
         command = "/unpack";
@@ -259,33 +261,33 @@ int main(int argc, char* argv[]) {
         filename = argv[2];
 
         int i = 3;
-        while (i < argc) {
-            if (strcmp(argv[i], "/out") == 0) {
-                if (i + 1 < argc) {
-                    output_folder = argv[i + 1];
-                    i += 2;
-                } else {
-                    fprintf(stderr, "Missing output path after /out switch.\n");
-                    return 1;
-                }
-            } else if (strcmp(argv[i], "/in") == 0) {
-                if (i + 1 < argc) {
-                    input_directory = argv[i + 1];
-                    i += 2;
-                } else {
-                    fprintf(stderr, "Missing input path after /in switch.\n");
-                    return 1;
-                }
-            } else {
-                i++;
-            }
-        }
+		while (i < argc) {
+			if (strcmp(argv[i], "/out") == 0) {
+				if (i + 1 < argc) {
+					output_directory = argv[i + 1];
+					i += 2;
+				} else {
+					fprintf(stderr, "Missing output path after /out switch.\n");
+					return 1;
+				}
+			} else if (strcmp(argv[i], "/in") == 0) {
+				if (i + 1 < argc) {
+					input_directory = argv[i + 1];
+					i += 2;
+				} else {
+					fprintf(stderr, "Missing input path after /in switch.\n");
+					return 1;
+				}
+			} else {
+				i++;
+			}
+		}
     }
 
 	std::string original_executable_directory;
 
 	if (strcmp(command, "/unpack") == 0) {
-		unpack_sections(filename, executable_directory, output_folder);
+    unpack_sections(filename, executable_directory, output_directory);
 	} else if (strcmp(command, "/pack") == 0) {
 		if (!input_directory.empty()) {
 			original_executable_directory = executable_directory;
@@ -299,8 +301,7 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "Invalid command: %s\n", command);
 		return 1;
 	}
-
-
+	
     return 0;
 }
 
