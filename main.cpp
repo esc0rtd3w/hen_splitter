@@ -25,6 +25,12 @@
 
 // TODO: check some bytes from input file to verify its a PS3HEN.BIN file
 
+#ifdef _WIN32
+    const char PATH_SEPARATOR = '\\';
+#else
+    const char PATH_SEPARATOR = '/';
+#endif
+
 std::string get_executable_directory() {
     std::string path;
     std::vector<char> buffer;
@@ -156,7 +162,8 @@ bool file_exists(const char* filename) {
     return (stat(filename, &st) == 0);
 }
 
-void pack_sections(const char* output_filename, Section* sections, int section_count) {
+void pack_sections(const char* output_filename, Section* sections, int section_count, const std::string& input_directory) {
+	
     if (file_exists(output_filename)) {
         std::cerr << "Error: Output file " << output_filename << " already exists. Please choose another filename." << std::endl;
         std::cout << "\nPress Enter to exit..." << std::endl;
@@ -179,7 +186,7 @@ void pack_sections(const char* output_filename, Section* sections, int section_c
         const auto& section = sections[i];
         std::ostringstream filename_stream;
         filename_stream << std::setfill('0') << std::setw(2) << (int)(&section - sections) + 1 << "_0x" << std::uppercase << std::hex << std::setw(8) << section.start << "-0x" << std::setw(8) << section.end << "_" << section.name << ".bin";
-        std::string filename = filename_stream.str();
+        std::string filename = input_directory + filename_stream.str();
 
         struct stat st;
         if (stat(filename.c_str(), &st) != 0) {
@@ -261,49 +268,49 @@ int main(int argc, char* argv[]) {
         filename = argv[2];
 
         int i = 3;
-		while (i < argc) {
-			if (strcmp(argv[i], "/out") == 0) {
-				if (i + 1 < argc) {
-					output_directory = argv[i + 1];
-					i += 2;
-				} else {
-					fprintf(stderr, "Missing output path after /out switch.\n");
-					return 1;
-				}
-			} else if (strcmp(argv[i], "/in") == 0) {
-				if (i + 1 < argc) {
-					input_directory = argv[i + 1];
-					i += 2;
-				} else {
-					fprintf(stderr, "Missing input path after /in switch.\n");
-					return 1;
-				}
-			} else {
-				i++;
-			}
-		}
+        while (i < argc) {
+            if (strcmp(argv[i], "/out") == 0) {
+                if (i + 1 < argc) {
+                    output_directory = argv[i + 1];
+                    i += 2;
+                } else {
+                    fprintf(stderr, "Missing output path after /out switch.\n");
+                    return 1;
+                }
+            } else if (strcmp(argv[i], "/in") == 0) {
+                if (i + 1 < argc) {
+                    input_directory = argv[i + 1];
+                    // Add the following line to append the file separator
+                    input_directory += "\\";
+                    i += 2;
+                } else {
+                    fprintf(stderr, "Missing input path after /in switch.\n");
+                    return 1;
+                }
+            } else {
+                i++;
+            }
+        }
     }
 
-	std::string original_executable_directory;
+    std::string original_executable_directory;
 
-	if (strcmp(command, "/unpack") == 0) {
-    unpack_sections(filename, executable_directory, output_directory);
-	} else if (strcmp(command, "/pack") == 0) {
-		if (!input_directory.empty()) {
-			original_executable_directory = executable_directory;
-			executable_directory += input_directory + "/";
-		}
-		pack_sections(filename, sections, sizeof(sections) / sizeof(sections[0]));
-		if (!input_directory.empty()) {
-			executable_directory = original_executable_directory;
-		}
-	} else {
-		fprintf(stderr, "Invalid command: %s\n", command);
-		return 1;
-	}
-	
+    if (strcmp(command, "/unpack") == 0) {
+        unpack_sections(filename, executable_directory, output_directory);
+    } else if (strcmp(command, "/pack") == 0) {
+        if (!input_directory.empty()) {
+            original_executable_directory = executable_directory;
+            executable_directory += input_directory + "/";
+        }
+        pack_sections(filename, sections, sizeof(sections) / sizeof(sections[0]), input_directory);
+        if (!input_directory.empty()) {
+            executable_directory = original_executable_directory;
+        }
+    } else {
+        fprintf(stderr, "Invalid command: %s\n", command);
+        return 1;
+    }
+    
     return 0;
 }
-
-
 
