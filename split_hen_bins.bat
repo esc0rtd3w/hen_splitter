@@ -29,6 +29,7 @@ goto start
 %split% /unpack PS3HEN.BIN_CEX_488 /out "488C"
 %split% /unpack PS3HEN.BIN_CEX_489 /out "489C"
 %split% /unpack PS3HEN.BIN_CEX_490 /out "490C"
+goto end
 
 :dbg
 %split% /unpack PS3HEN.BIN_CEX_480_DEBUG /out "480C"
@@ -44,6 +45,7 @@ goto start
 %split% /unpack PS3HEN.BIN_CEX_490_DEBUG /out "490C"
 %split% /unpack PS3HEN.BIN_DEX_482_DEBUG /out "482D"
 %split% /unpack PS3HEN.BIN_DEX_484_DEBUG /out "484D"
+goto end
 
 :end
 exit
